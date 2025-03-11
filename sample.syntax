@@ -1,0 +1,172 @@
+; This is a comment
+; Only single-line comments are supported
+; This file showcases what the binary parser format might look like
+; it is unstable and under development at the moment
+; whitespace is ignored everywhere so you can theoretically write the whole 
+; program below in one single line and it will still work
+; But that is not reccommended
+;
+; First, the basics, some primitives
+; 1) u8, u16, u32, u64, i8, i16, i32, i64 -> these represent the signed and unsigned
+; 8, 16, 32 and 64 bit integers respectively
+; 2) uleb128<N> and ileb128<N> -> these represent the signed and unsigned N byte
+; little-endian base 128 numbers respectively. (This exists to support formats that 
+; use VLQs such as the WebAssembly Module format and DWARF)
+;
+; Since all binary formats are just vectors of integers together representing
+; a complete meaning, these primitves can be used to represent virtually every 
+; format in existence
+; 
+; However since a given file format might use a large number of integers together
+; and since most file formats allow for variable lengths of the various 
+; integer vectors that make them up, it is not possible to hardcode the number
+; of times, say a u32 might appear at a certain offset.
+; Thus, we provide some built-ins to deal with repetitions and conditionals
+;
+; Note that the syntax may be very obtuse because this file format gives more
+; importance to machines parsing it, than for the humans writing it, a weird
+; design choice, indeed, but the users get to reap the benefits of a quick
+; tool that outputs efficient parsers. (well, I hope so at least)
+;
+; With our types and notions in mind, we get to the building blocks of the syntax
+
+<>
+; This is the smallest possible program that you can write, which well does
+; nothing. All code is between angled brackets ('<' and '>') and the syntax
+; is a vector of nested angled brackets.
+
+<n:u32>
+; This is a very simple program that specifies a file format with only one
+; unsigned 32-bit integer 'n', at its very beginning
+; Note the syntax 'NAME:TYPE'. This is how one declares a variable
+; and specifies the presence of a value. When the tool uses this program
+; to parse a file, it expects a 32-bit integer to be right at the 
+; beginning of the file which is assigned to the variable n
+; Note that in a variable declaration both NAME and TYPE are compulsory
+; as this language is strongly typed. 
+; Also note that variables can only have 10 characters in their names.
+; Note that variable names may only be consisting of ASCII letters 
+; and numbers ONLY (i.e only a-z and A-Z and 0-9).
+
+<0xCAFEBABE:u32>
+; The same declaration can also be used to declare constants
+; This is useful for say file formats that begin with a "magic number"
+; like the java class file format (0xCAFEBABE, as in here) or 
+; the ELF file format (0x7F ELF). This declaration says 
+; "the unsigned integer 0xCAFEBABE must appear at the top of the file"
+; The tool correspondingly rejects all files that don't start with this number
+
+<0xCAFEBABE:u32>
+<minor:u16> 
+<major:u16>
+; This uses all the features used till now and represents the structure
+; of the first 8 bytes of the Java class file format. 
+; Note that the order of declaration is important and this is exactly
+; how the tool will expect valid files to be layed out
+; i.e in this case the tool expects 0xCAFEBABE followed by two 
+; unsigned 16 bit integers that represent the major and minor versions
+; of the class file respectively.
+;
+
+; Thus the program for a imaginary file format X may look like
+; the program given below
+<0xF00DBAD:u32>
+<cksum:u32>
+<ver:u32>
+<pic1:u8><pic2:u8><pic3:u8><pic4:u8><pic5:u8>
+<secn1:u64><secn2:u64><secn3:u64><secn4:u64><sec5:u64>
+<0xBADF00D:u32>
+
+; Note how in the previous example we wrote <pic{1,2,3,4,5}:u8> 5 times
+; just to get all the <picN> elements. This is a tedious process
+; and very prone to error.
+; Now we introduce a composite type vec that represents a vector
+; of elements of some non-zero positive size
+; It is declared like so: vec(SIZE, TYPE) where SIZE is a variable
+: or a constant declared previously that represents the size of the vector
+; and TYPE represents the type of elements the vector can store
+; We can now rewrite the previous example with vector can store
+
+<0xF00DBAD:u32>
+<cksum:u32>
+<ver:u32>
+<pic:vec(5, u32)>
+<secn:vec(5, u64)>
+<0xBADF00D:u32>
+
+; Of course, vectors can have variable lengths too
+<size: u32>
+<data: vec(size, u64)>
+
+; Note that both SIZE and TYPE for a vector is mandatory and must
+; be specified
+
+; Most file formats are divided into sections, with each
+; section having its own structure. 
+; The language allows you to represent such structures
+; by using the notation 'type(NAME1:TYPE1, NAME2:TYPE2, ..., NAME_N:TYPE_N)'
+; type(..) declares a section having the following components
+; each with their own types, appearing in exactly the order, they are
+; declared in the expression
+; For example, here we have the 'types' section from a WebAssembly
+; module represented as a type
+; Note 1) Just declaring a type does not generate any code
+; 2) type(..) can be used to create type aliases by omitting the NAME parameter
+; 3) declaring a type creates a composite type of which variables may be created
+; 4) types can contain other types too i.e types can be defined recursively
+; 5) type(..) declarations can specify upto 256 types within themselves
+; 6) type(..) declarations cannot have an empty body i.e type() is invalid
+
+<vlen:type(uleb128<4>)>
+<fntype:type(0x60: u8, retlen: vlen, returns: vec(retlen, u8), paramlen: vlen, params: vec(paramlen, u8)>
+<types:type(len: vlen, func: vec(vlen, fntype))>
+
+; Now declare the types section
+; This will generate code
+<tysize: vlen>
+<typesSec: vec(vlen, types)>
+
+; Next there is also a need for conditionals while parsing file formats
+; For example, there are often situations while parsing file formats where at
+; a given offset two different types of sections (or type(..)-s) may start
+; depending on the value at a previous offset
+; the language provides the optional(...) builtin for this purpose
+; optional() is declared as:
+
+; <ret: optional(var, val1:type1, val2:type2, val3:type3, ..., valN:typeN)>
+; Here:
+; 1) var is a previously declared variable whose value decides what will
+; appear at this offset
+; 2) val1..valN are the various values that var may take here, maybe a constant
+; 	or a variable
+; 3) type1..typeN represent the type that will be present at this location
+;   when var takes the corresponding value
+; 
+; The special value 'none' for 'type' means that no type will be present
+; at this location, basically telling the tool to move to the next statement
+; The special value 'default' for 'val' signifies that if the value of var
+; does not match any of the mentioned cases then the type specified with it
+; will be present
+; It is mandatory for 'default' to be present in an optional expression
+; Eg. we can have
+
+<s: optional(flag, 1:t1, 2:t2, default:none)>
+; the above statement signifies that, s will c
+; If flag is 1, then t1 is present here
+; If flag is 2, then t2 is present here
+; Else for all other values of flag, no type is present here, move to next
+; If the 'none' value is the result of an optional(), the variable
+; 's' will not exist i.e it is an error to access 's' from code 
+; when case 'default' is triggered
+
+; There is also a special builtin called skip that allows one to
+; skip LENGTH bytes ahead in the file. Again LENGTH is either a constant
+; or a variable. It is declared like so:
+<0x456: skip>
+<val: u32>
+<val: skip>
+
+; The final syntax of the language thus contains the 3 builtins 
+; and the 10 primitives organised into vectors of angled bracketed statements
+; The simple nature of the language makes it very friendly for machine
+; consumers and generators but not very friendly to human eyes.

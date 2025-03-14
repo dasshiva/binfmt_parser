@@ -44,7 +44,7 @@
 ; beginning of the file which is assigned to the variable n
 ; Note that in a variable declaration both NAME and TYPE are compulsory
 ; as this language is strongly typed. 
-; Also note that variables can only have 10 characters in their names.
+; Also note that variables can only have 20 characters in their names.
 ; Note that variable names may only be consisting of ASCII letters 
 ; and numbers ONLY (i.e only a-z and A-Z and 0-9).
 

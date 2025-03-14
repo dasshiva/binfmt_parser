@@ -95,8 +95,6 @@ int lexConstant(struct Lexer* lex, uint64_t* dest, int base) {
   // base can have three values = 2, 10, 16
   // If base is 2, there can be at most 64 digits, if base is 10, there can
   // be at most 20 digits and if base is 16 there can be at most 16 digits
-  uint64_t beg = mtell(lex->buf);
-  uint64_t end = beg;
 
   if (base == 2) {
     char* num = calloc(64, sizeof(char));
@@ -120,7 +118,6 @@ int lexConstant(struct Lexer* lex, uint64_t* dest, int base) {
       }
 
       num[i] = c;
-      end++;
     }
 
     *dest = strtoull(num, NULL, 2);
@@ -144,7 +141,6 @@ int lexConstant(struct Lexer* lex, uint64_t* dest, int base) {
       }
 
       num[i] = c;
-      end++;
     }
 
     *dest = strtoull(num, NULL, 10);
@@ -168,7 +164,6 @@ int lexConstant(struct Lexer* lex, uint64_t* dest, int base) {
       }
 
       num[i] = c;
-      end++;
     }
 
     *dest = strtoull(num, NULL, 16);

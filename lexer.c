@@ -19,11 +19,9 @@ static int willSkip(char c) {
 }
 
 enum {
-	LEXER_EXPECT_OPEN_BRACKET = 1 << 0, // At toplevel, expecting '<'
-	LEXER_EOF = 1 << 1,          // Lexer has hit the end of file
-	LEXER_IN_COMMENT = 1 << 2,   // We are processing a comment
-	LEXER_EXPECT_ENTITY = 1 << 3, // Expecting either a named variable or constant
-	LEXER_IN_ERROR = 1 << 4     // We have encountered some kind of error
+	LEXER_EOF = 1 << 0,          // Lexer has hit the end of file
+	LEXER_IN_COMMENT = 1 << 1,   // We are processing a comment
+	LEXER_IN_ERROR = 1 << 2     // We have encountered some kind of error
 };
 
 struct Lexer {
@@ -145,8 +143,24 @@ struct Token* next(struct Lexer* lex) {
 		// and is something that has to be passed back to
 		// our caller
 
-		if (lex->flags & LEXER_EXPECT_OPEN_BRACKET) {
-			if (c == '<') {
+		switch (c) {
+			case COLON:
+			case PAR_OPEN:
+			case OPEN_BRACKET:
+			case CLOSE_BRACKET:
+			case PAR_CLOSE:
+			case MINUS: {
+				ret = makeToken(lex, c);
+				lex->col++;
+				break;
+			}
+
+			default:
+				lexerError(lex, "Unimplemented support for %c", c);
+				break;
+		};
+	}
+		/*	if (c == '<') {
 				lex->flags |= LEXER_EXPECT_ENTITY;
 				lex->flags &= ~LEXER_EXPECT_OPEN_BRACKET;
 				ret = makeToken(lex, OPEN_BRACKET);
@@ -158,7 +172,6 @@ struct Token* next(struct Lexer* lex) {
 				lexerError(lex, "Expected '<' but got '%c'", c);
 				return NULL;
 			}
-		}
 
 		if (lex->flags & LEXER_EXPECT_ENTITY) {
 			if (isLetter(c)) {
@@ -210,7 +223,7 @@ struct Token* next(struct Lexer* lex) {
 		}
 
 		lex->col++;
-	}
+	} */
 
 	// We come here when we reach EOF the first time 
 	// Inform the caller about this
@@ -233,7 +246,7 @@ struct Lexer* newLexer(MemBuf* buf) {
 	ret->buf = buf;
 	ret->line = 1;
 	ret->col  = 1;
-	ret->flags |= LEXER_EXPECT_OPEN_BRACKET;
+	ret->flags |= 0;
 	return ret;
 }
 

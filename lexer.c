@@ -3,10 +3,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define next_char(buf, var) ((char)(readU8(buf, var));
+
+enum {
+	LEXER_EXPECT_OPEN_BRACKET = 1 << 0,
+	LEXER_EOF = 1 << 1
+};
+
 struct Lexer {
 	uint32_t line;
 	uint32_t col;
 	MemBuf*  buf;
+	uint32_t flags;
 };
 
 struct Token* next(struct Lexer* lex) {
@@ -14,6 +22,14 @@ struct Token* next(struct Lexer* lex) {
 		return NULL;
 	// TODO: Implement lexer
 	struct Token* ret = NULL;
+	while (1) {
+		char c = 0;
+		uint64_t status = next_char(lex->buf, &c);
+		if (status == UINT64_MAX) {
+			lexer->flags |= LEXER_EOF;
+			break;
+		}
+	}
 	return ret;
 }
 
@@ -28,6 +44,7 @@ struct Lexer* newLexer(MemBuf* buf) {
 	ret->buf = buf;
 	ret->line = 1;
 	ret->col  = 0;
+	ret->flags |= LEXER_EXPECT_OPEN_BRACKET;
 	return ret;
 }
 

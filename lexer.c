@@ -35,7 +35,8 @@ struct Token* next(struct Lexer* lex) {
 	if (!lex)
 		return NULL;
 	
-	if (lex->flags & LEXER_EOF) // Prevent running the lexer if we are done
+	// Prevent running the lexer if we are done
+	if (lex->flags & LEXER_EOF) 		
 		return NULL;
 
 	// TODO: Implement lexer

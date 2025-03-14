@@ -57,7 +57,7 @@ struct Token* next(struct Lexer* lex) {
 
 		if (lex->flags & LEXER_IN_COMMENT) {
 			if (c == '\n') { // Found newline start lexing now
-				lex->flags &= LEXER_IN_COMMENT;
+				lex->flags &= ~LEXER_IN_COMMENT;
 				continue;
 			}
 			else // Keep skipping if in comment till newline
@@ -79,6 +79,16 @@ struct Token* next(struct Lexer* lex) {
 
 		lex->col++;
 
+		if (lex->flags & LEXER_EXPECT_OPEN_BRACKET) {
+			if (c == '<') {
+				lex->flags |= LEXER_EXPECT_NAME;
+				lex->flags &= ~LEXER_EXPECT_OPEN_BRACKET;
+				continue;
+			}
+
+			else 
+				lexerError(lex, "Expected '<' but got '%c'", c);
+		}
 	}
 
 	// We come here when we reach EOF the first time 

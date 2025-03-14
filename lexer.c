@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #define next_char(buf, var) readU8(buf, var);
 
@@ -11,7 +12,6 @@ static int willSkip(char c) {
 		// We do need newlines to know if a comment has ended
 		// but stray newlines do not really matter
 		case '\n':
-		case ':' :
 			return 1;
 		default:
 			return 0;
@@ -19,9 +19,11 @@ static int willSkip(char c) {
 }
 
 enum {
-	LEXER_EXPECT_OPEN_BRACKET = 1 << 0,
-	LEXER_EOF = 1 << 1,
-	LEXER_IN_COMMENT = 1 << 2
+	LEXER_EXPECT_OPEN_BRACKET = 1 << 0, // At toplevel, expecting '<'
+	LEXER_EOF = 1 << 1,          // Lexer has hit the end of file
+	LEXER_IN_COMMENT = 1 << 2,   // We are processing a comment
+	LEXER_EXPECT_ENTITY = 1 << 3, // Expecting either a named variable or constant
+	LEXER_IN_ERROR = 1 << 4     // We have encountered some kind of error
 };
 
 struct Lexer {
@@ -31,12 +33,73 @@ struct Lexer {
 	uint32_t flags;
 };
 
+void lexerError(struct Lexer* lex, const char* fmt, ...) {
+	lex->flags |= LEXER_IN_ERROR;
+	va_list ap;
+	va_start(ap, fmt);
+	printf("Error at line %u, column %u : ", lex->line, lex->col);
+	vprintf(fmt, ap);
+	printf("\nAborting now\n");
+	va_end(ap);
+}
+
+static inline int isDigit(char c) {
+	return (c >= '0') && (c <= '9');
+}
+
+static inline int isLetter(char c) {
+	return ((c >= 'a') && (c <= 'z')) ||
+		((c >= 'A') && (c <= 'Z'));
+}
+
+static struct Token* makeToken(struct Lexer* lexer, enum TokenType ty) {
+	struct Token* token = malloc(sizeof(struct Token));
+	if (!token) {
+		lexerError(lexer, "Out of memory");
+		return NULL;
+	}
+
+	token->line = lexer->line;
+	token->col  = lexer->col;
+	token->type = ty;
+	return token;
+}
+
+int lexName(struct Lexer* lex, char* name) {
+	// DO NOT touch name[0], it is already initialised
+	char c = 0;
+	uint64_t status = 0;
+	for (int i = 1; i < 20; i++) {
+		status = next_char(lex->buf, &c);
+		if (status == UINT64_MAX) {
+			lex->flags |= LEXER_EOF;
+			return 0;
+		}
+
+		if (isDigit(c) || isLetter(c))
+			name[i] = c;
+		else {
+			// Put back character into stream
+			mseek(lex->buf, MEMBUF_CURRENT, -1);
+			return 1;
+		}
+
+		lex->col++;
+	}
+
+	return 1;
+}
+
 struct Token* next(struct Lexer* lex) {
 	if (!lex)
 		return NULL;
 	
 	// Prevent running the lexer if we are done
 	if (lex->flags & LEXER_EOF) 		
+		return NULL;
+
+	// We have encountered a lexing error, don't process any more tokens
+	if (lex->flags & LEXER_IN_ERROR)
 		return NULL;
 
 	// TODO: Implement lexer
@@ -60,14 +123,19 @@ struct Token* next(struct Lexer* lex) {
 				lex->flags &= ~LEXER_IN_COMMENT;
 				continue;
 			}
-			else // Keep skipping if in comment till newline
+			else { // Keep skipping if in comment till newline
+			        lex->col++;
 				continue;
+			}
 		}
 
-		if (willSkip(c))
+		if (willSkip(c)) {
+			lex->col++;
 			continue;
+		}
 
 		if (c == SEMI_COLON) {
+			lex->col++;
 			lex->flags |= LEXER_IN_COMMENT;
 			continue;
 		}
@@ -77,18 +145,71 @@ struct Token* next(struct Lexer* lex) {
 		// and is something that has to be passed back to
 		// our caller
 
-		lex->col++;
-
 		if (lex->flags & LEXER_EXPECT_OPEN_BRACKET) {
 			if (c == '<') {
-				lex->flags |= LEXER_EXPECT_NAME;
+				lex->flags |= LEXER_EXPECT_ENTITY;
 				lex->flags &= ~LEXER_EXPECT_OPEN_BRACKET;
-				continue;
+				ret = makeToken(lex, OPEN_BRACKET);
+				lex->col++;
+				return ret;
 			}
 
-			else 
+			else { 
 				lexerError(lex, "Expected '<' but got '%c'", c);
+				return NULL;
+			}
 		}
+
+		if (lex->flags & LEXER_EXPECT_ENTITY) {
+			if (isLetter(c)) {
+				ret = makeToken(lex, TYPE_NAME);
+				if (!ret)
+					return NULL;
+
+				// Allocate a fixed size (maybe more than
+				// needed) as identifiers cannot be 
+				// longer than 20 bytes
+
+				ret->name = calloc(20, sizeof(char));
+				if (!ret->name) {
+					free(ret);
+					lexerError(lex, "Out of memory");
+					return NULL;
+				}
+
+				ret->name[0] = c;
+				lex->col++; // We picked up 'c'
+
+				// lexName can pick up a maximum of 19
+				// characters only as one has already been
+				// picked up by us
+
+				// If lexName failed it encountered an 
+				// unexpected end of file
+				if (!lexName(lex, ret->name)) {
+					lexerError(lex, "Unexpected end of file");
+					free(ret->name);
+					free(ret);
+					return NULL;
+				}
+
+				return ret;
+			}
+
+			else if (isDigit(c)) {
+				// Pick up a constant
+			}
+
+			else {
+				// Whatever 'c' is, it cannot be a part of an 
+				// identifier or a constant 
+				lexerError(lex, "Expected identifier or constant but '%c'" 
+						" cannot be in an identifier or constant", c);
+				return NULL;
+			}
+		}
+
+		lex->col++;
 	}
 
 	// We come here when we reach EOF the first time 
@@ -111,7 +232,7 @@ struct Lexer* newLexer(MemBuf* buf) {
 
 	ret->buf = buf;
 	ret->line = 1;
-	ret->col  = 0;
+	ret->col  = 1;
 	ret->flags |= LEXER_EXPECT_OPEN_BRACKET;
 	return ret;
 }
@@ -134,7 +255,7 @@ void dumpToken(struct Token* token) {
 		case PAR_OPEN:
 		case PAR_CLOSE:
 		case MINUS: {
-			printf("Token =\'%c\' ", (char)token->type);
+			printf(" Token =\'%c\' ", (char)token->type);
 			break;
 		}
 

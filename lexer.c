@@ -2,11 +2,26 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define next_char(buf, var) ((char)(readU8(buf, var)));
+#define next_char(buf, var) readU8(buf, var);
+
+static int willSkip(char c) {
+	switch (c) {
+		case '\r':
+		case ' ' :
+		// We do need newlines to know if a comment has ended
+		// but stray newlines do not really matter
+		case '\n':
+		case ':' :
+			return 1;
+		default:
+			return 0;
+	}
+}
 
 enum {
 	LEXER_EXPECT_OPEN_BRACKET = 1 << 0,
-	LEXER_EOF = 1 << 1
+	LEXER_EOF = 1 << 1,
+	LEXER_IN_COMMENT = 1 << 2
 };
 
 struct Lexer {
@@ -19,6 +34,10 @@ struct Lexer {
 struct Token* next(struct Lexer* lex) {
 	if (!lex)
 		return NULL;
+	
+	if (lex->flags & LEXER_EOF) // Prevent running the lexer if we are done
+		return NULL;
+
 	// TODO: Implement lexer
 	struct Token* ret = NULL;
 	while (1) {
@@ -28,7 +47,46 @@ struct Token* next(struct Lexer* lex) {
 			lex->flags |= LEXER_EOF;
 			break;
 		}
+
+		// detect newline before willSkip() jumps over it
+		if (c == '\n') {
+			lex->line++;
+			lex->col = 0;
+		}
+
+		if (lex->flags & LEXER_IN_COMMENT) {
+			if (c == '\n') { // Found newline start lexing now
+				lex->flags &= LEXER_IN_COMMENT;
+				continue;
+			}
+			else // Keep skipping if in comment till newline
+				continue;
+		}
+
+		if (willSkip(c))
+			continue;
+
+		if (c == SEMI_COLON) {
+			lex->flags |= LEXER_IN_COMMENT;
+			continue;
+		}
+
+		// If we came here, it means that 'c' is a character
+		// of some meaning i.e it is of semantic importance
+		// and is something that has to be passed back to
+		// our caller
+
+		lex->col++;
+
 	}
+
+	// We come here when we reach EOF the first time 
+	// Inform the caller about this
+	// Next time we are called in this state, we will return NULL
+	
+	ret = malloc(sizeof(struct Token));
+	ret->type = END_OF_FILE;
+	ret->name = NULL;
 	return ret;
 }
 
@@ -145,7 +203,6 @@ void dumpToken(struct Token* token) {
 			break;
 		}
 
-		case NEWLINE:
 		case END_OF_FILE: { break; }
 		default: {
 			printf("Unrecognised token type = %u", token->type);
@@ -157,3 +214,13 @@ void dumpToken(struct Token* token) {
 	printf("}\n");
 }
 
+void freeToken(struct Token* token) {
+	// Only free the token structure itself not token->name
+	// token->name may be passed on to other structures in
+	// the parser and freeing this here would mean we have to
+	// strcpy() the name to a new allocated buffer which is not
+	// very efficient and definitely more costly than just using
+	// the same string everywhere until we can have more efficient
+	// alternatives (maybe hashing the strings??)
+	free(token);
+}

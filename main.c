@@ -15,6 +15,15 @@ int main(int argc, const char** argv) {
 	}
 
 	struct Lexer* lexer = newLexer(buf);
+	struct Token* t = next(lexer);
+
+	while (1) {
+		if (t->type == END_OF_FILE)
+			break;
+		t = next(lexer);
+	}
+
+	freeToken(t);
 	destroyLexer(lexer);
 	return 0;
 }

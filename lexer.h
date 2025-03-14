@@ -54,8 +54,10 @@ typedef struct Token {
 
 struct Lexer;
 struct Lexer* newLexer(MemBuf*);
+// Make sure to free the token claimed from here by calling freeToken()
 struct Token* next(struct Lexer* lexer);
 void dumpToken(struct Token* token);
 void destroyLexer(struct Lexer* lexer);
+void freeToken(struct Token* token);
 
 #endif

@@ -26,6 +26,8 @@ struct Lexer* newLexer(MemBuf* buf) {
 		return NULL;
 
 	ret->buf = buf;
+	ret->line = 1;
+	ret->col  = 0;
 	return ret;
 }
 

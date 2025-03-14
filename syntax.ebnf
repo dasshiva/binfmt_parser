@@ -1,0 +1,46 @@
+# Note that the grammar doesn't provide for single line comments
+# This is because the parser never sees any comments or semi-colons
+# The lexer strips them off automatically
+# There are also no provisions for spaces, newlines, carriage returns
+# or any other separator as none of these make it past the lexer
+# You can say that the parser gets one giant line of text from the 
+# lexer that has all it needs
+# That is, you can write:
+# <0xCAFEBABE:u32>
+# <b: vec(a:i32, b:i64)>
+# But this is what the parser sees:
+# <0xCAFEBABE:u32><b:vec(a:i32,b:i64)>
+
+program      = statement | "" | statement , {statement} ;
+statement    = "<" ident ":" type ">" | "<" constant ":" type ">" ;
+
+ident        = letter, {ident | number} ;
+letter       = lowercase | uppercase ;
+lowercase    = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i"
+              | "j" | "k" | "l" | "m" | "n" | "o" | "p"
+              | "q" | "r" | "s" | "t" | "u" | "v" | "w"
+              | "x" | "y" | "z" ;
+uppercase    = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+              | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+              | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+              | "V" | "W" | "X" | "Y" | "Z" ;
+
+constant     = hexprefix hexdigits | decimal | binaryprefix binarydigits ;
+hexprefix    = "0x" ;
+hexdigits    = number | "A" | "B" | "C" | "D" | "E" | "F" | hexdigits ;
+binaryprefix = "0b" ;
+binarydigits = "0" | "1" | binarydigits ;
+decimal      = number | decimal ;
+
+number       = "0" | "1" | "2" | "3" | "4"
+              | "5" | "6" | "7" | "8" | "9" ;
+
+type         = "i8" | "i16" | "i32" | "i64" | "ileb128" "<" decimal ">"
+              | "u8" | "u16" | "u32" | "u64" | "uleb128" "<" decimal ">" 
+              | "skip" | vecdecl | typedecl | ident;
+
+vecdecl      = "vec" "(" contents , {"," contents} ")" ;
+contents     = ident ":" type | constant ":" type ;
+
+typedecl     = "type" "(" type ")" |  
+                "type" "(" contents , {"," contents} ")" ;

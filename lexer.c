@@ -426,31 +426,31 @@ const char *token2string(Token *t) {
   case MINUS:
     return "-";
   case TYPE_I8:
-    return "i8";
+    return "Type(i8)";
   case TYPE_I16:
-    return "i16";
+    return "TYpe(i16)";
   case TYPE_I32:
-    return "i32";
+    return "Type(i32)";
   case TYPE_I64:
-    return "i64";
+    return "Type(i64)";
   case TYPE_ILEB128:
-    return "ileb128";
+    return "Type(ileb128)";
   case TYPE_U8:
-    return "u8";
+    return "Type(u8)";
   case TYPE_U16:
-    return "u16";
+    return "Type(u16)";
   case TYPE_U32:
-    return "u32";
+    return "Type(u32)";
   case TYPE_U64:
-    return "u64";
+    return "TYpe(u64)";
   case TYPE_ULEB128:
-    return "uleb128";
+    return "Type(uleb128)";
   case TYPE_DECL:
-    return "type";
+    return "TypeDecl(type)";
   case TYPE_VEC:
-    return "vec";
+    return "Type(vec)";
   case TYPE_SKIP:
-    return "skip";
+    return "TYpe(skip)";
   case TYPE_CONSTANT:
     return "constant";
   case TYPE_NAME: 

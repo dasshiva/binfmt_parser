@@ -32,6 +32,7 @@ int main(int argc, const char** argv) {
 		if (t->type == END_OF_FILE)
 			break;
 		dumpToken(t);
+    freeToken(t);
 		t = next(lexer);
 	}
 

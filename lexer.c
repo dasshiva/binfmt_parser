@@ -1,9 +1,8 @@
-#include <membuf.h>
 #include "lexer.h"
 #include <stdlib.h>
 #include <stdio.h>
 
-#define next_char(buf, var) ((char)(readU8(buf, var));
+#define next_char(buf, var) ((char)(readU8(buf, var)));
 
 enum {
 	LEXER_EXPECT_OPEN_BRACKET = 1 << 0,
@@ -26,7 +25,7 @@ struct Token* next(struct Lexer* lex) {
 		char c = 0;
 		uint64_t status = next_char(lex->buf, &c);
 		if (status == UINT64_MAX) {
-			lexer->flags |= LEXER_EOF;
+			lex->flags |= LEXER_EOF;
 			break;
 		}
 	}

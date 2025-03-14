@@ -2,6 +2,7 @@
 #define __LEXER_H__
 
 #include <stdint.h>
+#include <membuf.h>
 // All the tokentypes returned by the lexer
 // Notice that carriage return, tabs and spaces do not have corresponding
 // enum types. This is because the lexer simply skips over such tokens
@@ -52,7 +53,7 @@ typedef struct Token {
 } Token;
 
 struct Lexer;
-struct Lexer* newLexer();
+struct Lexer* newLexer(MemBuf*);
 struct Token* next(struct Lexer* lexer);
 void dumpToken(struct Token* token);
 void destroyLexer(struct Lexer* lexer);

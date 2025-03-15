@@ -28,9 +28,11 @@ enum TokenType {
 	TYPE_SKIP,           // "skip"
 	TYPE_DECL,           // "type"
 	TYPE_NAME,           // Name of a variable declared in a type(), skip, vec 
-			     // or generic variable declaration. For ex in 
-			     // "<example:u64>", this type represents the string 
-			     // "example"
+			                 // or generic variable declaration. For ex in 
+			                 // "<example:u64>", this type represents the string 
+			                 // "example"
+  LITERAL_DEFAULT,     // "default"
+  LITERAL_NONE,        // "none"
 	TYPE_CONSTANT,       // A numeric constant such as 0xCAFEBABE
 			     // always treated as 64-bit unsigned integer
 	COLON    = ':',      // value = 58

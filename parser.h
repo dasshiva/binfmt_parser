@@ -1,3 +1,6 @@
+#ifndef __PARSER_H__
+#define __PARSER_H__
+
 #include "lexer.h"
 #include <membuf.h>
 
@@ -15,7 +18,7 @@
 
 struct Statement;
 typedef struct Program {
-	struct Statement* this;
+	struct Statement* cur;
 	struct Statement* prev;
 	struct Statement* next;
 } Program;
@@ -41,28 +44,28 @@ typedef struct Statement {
  */
 
 struct Vector;
-struct Type;
+struct TypeDecl;
 struct Option;
 typedef struct Type {
 	union {
-		struct Token*  bltin;
-		struct Vector* vec;
-		struct Type*   type;
-		struct Option* opt;
+		struct Token*    bltin;
+		struct Vector*   vec;
+		struct TypeDecl* type;
+		struct Option*   opt;
 	}
 
 	uint8_t ty;
 } Type;
 
 /* 
- * vecdecl  = "vec" "(" contents, {contents} ")"
+ * typedecl  = "type" "(" contents, {contents} ")"
  * contents = (ident | constant) ":" type
  * Again in the contents declaration, ident | constant is the subject
  * and type is the predicate
  */
 
 struct Content;
-typedef struct Vector {
+typedef struct TypeDecl {
 	struct Contents* conts;
 	uint32_t len;
 } Vector;
@@ -72,4 +75,30 @@ typedef struct Content {
 	struct Type*  type;
 } Content;
 
+/* 
+ * vecdecl = "vec" "(" size ":" type ")"
+ * size = ident | constant
+ */
+typedef struct Vector {
+  struct Token* subject;
+  struct Type*  type;
+};
 
+/* 
+ * optiondecl  = "optional" "(" contents, {contents} ")"
+ * contents = (ident | constant) ":" type | "default" ":" type | 
+ *  (ident | constant) ":" "none" | "default" : "none"
+ */
+
+struct Options;
+typedef struct Option {
+  struct Options* opts;
+  uint32_t len;
+}
+
+typedef struct Options {
+  struct Token* subject; // may be an identifier, constant or "default"
+  struct Token* pred;    // may be a type or "none"
+} Options;
+
+#endif

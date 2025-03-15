@@ -11,12 +11,12 @@
 static const char* builtinTypes[] = {
   "u8", "u16", "u32", "u64", "uleb128", // the unsigned types
   "i8", "i16", "i32", "i64", "ileb128", // the signed types
-  "vec", "skip", "type"                 // the composite types
+  "optional", "vec", "skip", "type"     // the composite types
 };
 
 static int findIfBuiltin(const char* s) {
   // FIXME: This is inefficient
-  for (int i = 0; i < 13; i++) {
+  for (int i = 0; i < 14; i++) {
     if (strcmp(builtinTypes[i], s) == 0) 
       return i;
   }

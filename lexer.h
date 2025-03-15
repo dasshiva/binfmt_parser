@@ -23,6 +23,7 @@ enum TokenType {
 	TYPE_I32,            // "i32"
 	TYPE_I64,            // "i64"
 	TYPE_ILEB128,        // "ileb128"
+	TYPE_OPTIONAL,       // "optional"
 	TYPE_VEC,            // "vec"
 	TYPE_SKIP,           // "skip"
 	TYPE_DECL,           // "type"
@@ -31,7 +32,7 @@ enum TokenType {
 			     // "<example:u64>", this type represents the string 
 			     // "example"
 	TYPE_CONSTANT,       // A numeric constant such as 0xCAFEBABE
-			     // always treated as 64-bit unsigned integers
+			     // always treated as 64-bit unsigned integer
 	COLON    = ':',      // value = 58
 	COMMA    = ',',      // value = 44
 	SEMI_COLON = ';',    // value = 59

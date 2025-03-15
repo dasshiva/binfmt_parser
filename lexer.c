@@ -63,7 +63,7 @@ struct Lexer {
   uint32_t flags;
 };
 
-void lexerError(struct Lexer *lex, const char *fmt, ...) {
+void error(struct Lexer *lex, const char *fmt, ...) {
   lex->flags |= LEXER_IN_ERROR;
   va_list ap;
   va_start(ap, fmt);
@@ -86,7 +86,7 @@ static inline int isHexDigit(char c) {
 static struct Token *makeToken(struct Lexer *lexer, enum TokenType ty) {
   struct Token *token = malloc(sizeof(struct Token));
   if (!token) {
-    lexerError(lexer, "Out of memory");
+    error(lexer, "Out of memory");
     return NULL;
   }
 
@@ -105,7 +105,7 @@ int lexConstant(struct Lexer *lex, uint64_t *dest, int base) {
     status = next_char(lex->buf, &c);
     lex->col++; // We picked up another character
     if (status == UINT64_MAX) {
-      lexerError(lex, "Unexpected end of file while reading constant");
+      error(lex, "Unexpected end of file while reading constant");
       return 0;
     }
 
@@ -122,7 +122,7 @@ int lexConstant(struct Lexer *lex, uint64_t *dest, int base) {
         base = 16;
         break;
       default:
-        lexerError(lex, "%c is not a digit or base specifier", c);
+        error(lex, "%c is not a digit or base specifier", c);
         return 0;
       }
     }
@@ -139,7 +139,7 @@ int lexConstant(struct Lexer *lex, uint64_t *dest, int base) {
       status = next_char(lex->buf, &c);
       lex->col++;
       if (status == UINT64_MAX) {
-        lexerError(lex, "Unexpected end of file while reading constant");
+        error(lex, "Unexpected end of file while reading constant");
         return 0;
       }
 
@@ -150,7 +150,7 @@ int lexConstant(struct Lexer *lex, uint64_t *dest, int base) {
       }
 
       if (c != '0' && c != '1') {
-        lexerError(lex, "%c cannot appear in binary constant", c);
+        error(lex, "%c cannot appear in binary constant", c);
         return 0;
       }
 
@@ -167,7 +167,7 @@ int lexConstant(struct Lexer *lex, uint64_t *dest, int base) {
       status = next_char(lex->buf, &c);
       lex->col++;
       if (status == UINT64_MAX) {
-        lexerError(lex, "Unexpected end of file while reading constant");
+        error(lex, "Unexpected end of file while reading constant");
         return 0;
       }
 
@@ -190,7 +190,7 @@ int lexConstant(struct Lexer *lex, uint64_t *dest, int base) {
       status = next_char(lex->buf, &c);
       lex->col++;
       if (status == UINT64_MAX) {
-        lexerError(lex, "Unexpected end of file while reading constant");
+        error(lex, "Unexpected end of file while reading constant");
         return 0;
       }
 
@@ -209,7 +209,7 @@ int lexConstant(struct Lexer *lex, uint64_t *dest, int base) {
   }
 
   else {
-    lexerError(lex, "Internal error - Unknown base %d", base);
+    error(lex, "Internal error - Unknown base %d", base);
     return 0;
   }
 
@@ -316,7 +316,7 @@ struct Token *next(struct Lexer *lex) {
         ret->name = calloc(20, sizeof(char));
         if (!ret->name) {
           free(ret);
-          lexerError(lex, "Out of memory");
+          error(lex, "Out of memory");
           return NULL;
         }
 
@@ -328,7 +328,7 @@ struct Token *next(struct Lexer *lex) {
 
         // If lexName failed it encountered an unexpected end of file
         if (!lexName(lex, ret->name)) {
-          lexerError(lex, "Unexpected end of file");
+          error(lex, "Unexpected end of file");
           free(ret->name);
           free(ret);
           return NULL;
@@ -383,7 +383,7 @@ struct Token *next(struct Lexer *lex) {
       }
 
       else {
-        lexerError(lex, "Unknown character %c in source", c);
+        error(lex, "Unknown character %c in source", c);
         return NULL;
       }
 

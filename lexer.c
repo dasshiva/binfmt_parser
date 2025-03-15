@@ -8,17 +8,29 @@
 
 // they are so arranged such that their indexes
 // equal the TYPE_* enum values
-static const char* builtinTypes[] = {
-  "u8", "u16", "u32", "u64", "uleb128", // the unsigned types
-  "i8", "i16", "i32", "i64", "ileb128", // the signed types
-  "optional", "vec", "skip", "type"     // the composite types
-  "default", "none"                     // the literals
+static const char *builtinTypes[] = {
+    "u8",
+    "u16",
+    "u32",
+    "u64",
+    "uleb128", // the unsigned types
+    "i8",
+    "i16",
+    "i32",
+    "i64",
+    "ileb128", // the signed types
+    "optional",
+    "vec",
+    "skip",
+    "type" // the composite types
+    "default",
+    "none" // the literals
 };
 
-static int findIfBuiltin(const char* s) {
+static int findIfBuiltin(const char *s) {
   // FIXME: This is inefficient
   for (int i = 0; i < 16; i++) {
-    if (strcmp(builtinTypes[i], s) == 0) 
+    if (strcmp(builtinTypes[i], s) == 0)
       return i;
   }
 
@@ -84,7 +96,7 @@ static struct Token *makeToken(struct Lexer *lexer, enum TokenType ty) {
   return token;
 }
 
-int lexConstant(struct Lexer* lex, uint64_t* dest, int base) {
+int lexConstant(struct Lexer *lex, uint64_t *dest, int base) {
   // If base is 0, we have to figure it out ourselves
   // Otherwise just use the given base
   char c = 0;
@@ -97,16 +109,21 @@ int lexConstant(struct Lexer* lex, uint64_t* dest, int base) {
       return 0;
     }
 
-    if (isDigit(c)) 
+    if (isDigit(c))
       base = 10;
     else {
 
-      switch(c) {
-        case 'b': base = 2; break;
-        case 'x': case 'X': base = 16; break;
-        default:
-                lexerError(lex, "%c is not a digit or base specifier", c);
-                return 0;
+      switch (c) {
+      case 'b':
+        base = 2;
+        break;
+      case 'x':
+      case 'X':
+        base = 16;
+        break;
+      default:
+        lexerError(lex, "%c is not a digit or base specifier", c);
+        return 0;
       }
     }
   }
@@ -117,7 +134,7 @@ int lexConstant(struct Lexer* lex, uint64_t* dest, int base) {
   // be at most 20 digits and if base is 16 there can be at most 16 digits
 
   if (base == 2) {
-    char* num = calloc(64, sizeof(char));
+    char *num = calloc(64, sizeof(char));
     for (int i = 0; i < 64; i++) {
       status = next_char(lex->buf, &c);
       lex->col++;
@@ -145,7 +162,7 @@ int lexConstant(struct Lexer* lex, uint64_t* dest, int base) {
   }
 
   else if (base == 10) {
-    char* num = calloc(20, sizeof(char));
+    char *num = calloc(20, sizeof(char));
     for (int i = 0; i < 20; i++) {
       status = next_char(lex->buf, &c);
       lex->col++;
@@ -168,7 +185,7 @@ int lexConstant(struct Lexer* lex, uint64_t* dest, int base) {
   }
 
   else if (base == 16) {
-    char* num = calloc(16, sizeof(char));
+    char *num = calloc(16, sizeof(char));
     for (int i = 0; i < 16; i++) {
       status = next_char(lex->buf, &c);
       lex->col++;
@@ -273,8 +290,8 @@ struct Token *next(struct Lexer *lex) {
       continue;
     }
 
-    // If we came here, it means that 'c' is a character of some meaning i.e 
-    // it is of semantic importance and is something that has to be passed 
+    // If we came here, it means that 'c' is a character of some meaning i.e
+    // it is of semantic importance and is something that has to be passed
     // back to our caller
 
     switch (c) {
@@ -306,7 +323,7 @@ struct Token *next(struct Lexer *lex) {
         ret->name[0] = c;
         lex->col++; // We picked up 'c'
 
-        // lexName can pick up a maximum of 19 characters only as one has 
+        // lexName can pick up a maximum of 19 characters only as one has
         // already been picked up by us
 
         // If lexName failed it encountered an unexpected end of file
@@ -331,17 +348,17 @@ struct Token *next(struct Lexer *lex) {
         // of specifying integers: base 2 (binary), base 10 (decimal) and
         // base 16(hexadecimal)
 
-        // Base 2 integers are specified using the suffix '0b', base 16 
-        // integers are suffixed with '0x'. Decimal integers are the 
+        // Base 2 integers are specified using the suffix '0b', base 16
+        // integers are suffixed with '0x'. Decimal integers are the
         // default when no suffix is present
 
         ret = makeToken(lex, TYPE_CONSTANT);
         if (!ret)
           return NULL;
 
-        if (c == '0') { 
+        if (c == '0') {
           // Leading zeroes are allowed in decimal numbers
-          // But since leading zeroes do not affect the value of the 
+          // But since leading zeroes do not affect the value of the
           // decimal number it is safe to skip them
 
           // Many different kinds of errors are possible here
@@ -376,8 +393,8 @@ struct Token *next(struct Lexer *lex) {
     lex->col++;
   }
 
-  // We come here when we reach EOF the first time.  Inform the caller 
-  // about this. Next time we are called in this state, 
+  // We come here when we reach EOF the first time.  Inform the caller
+  // about this. Next time we are called in this state,
   // we will return NULL
 
   ret = malloc(sizeof(struct Token));
@@ -454,7 +471,7 @@ const char *token2string(Token *t) {
     return "TYpe(skip)";
   case TYPE_CONSTANT:
     return "constant";
-  case TYPE_NAME: 
+  case TYPE_NAME:
     return t->name;
   case END_OF_FILE:
     return "EOF";
@@ -470,11 +487,11 @@ void dumpToken(struct Token *token) {
 }
 
 void freeToken(struct Token *token) {
-  // Only free the token structure itself not token->name token->name may be 
-  // passed on to other structures in the parser and freeing this here would 
+  // Only free the token structure itself not token->name token->name may be
+  // passed on to other structures in the parser and freeing this here would
   // mean we have to strcpy() the name to a new allocated buffer which is not
-  // very efficient and definitely more costly than just using the same 
-  // string everywhere until we can have more efficient alternatives 
+  // very efficient and definitely more costly than just using the same
+  // string everywhere until we can have more efficient alternatives
   // (maybe hashing the strings?)
   free(token);
 }
